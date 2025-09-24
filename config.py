@@ -17,6 +17,11 @@ MODEL_DEPLOYMENT = os.getenv('MODEL_DEPLOYMENT')
 SUBSCRIPTION_KEY = os.getenv('SUBSCRIPTION_KEY')
 BING_CONNECTION_NAME = os.getenv('BING_CONNECTION_NAME')
 
+# Azure Service Principal (for authentication)
+AZURE_CLIENT_ID = os.getenv('AZURE_CLIENT_ID')
+AZURE_CLIENT_SECRET = os.getenv('AZURE_CLIENT_SECRET')
+AZURE_TENANT_ID = os.getenv('AZURE_TENANT_ID')
+
 # Application settings
 DEBUG = os.getenv('DEBUG', 'false').lower() == 'true'
 LOG_LEVEL = os.getenv('LOG_LEVEL', 'info')
@@ -57,6 +62,15 @@ def validate_environment():
         'SUBSCRIPTION_KEY',
         'BING_CONNECTION_NAME'
     ]
+    
+    # Check if service principal auth is available
+    auth_vars = ['AZURE_CLIENT_ID', 'AZURE_CLIENT_SECRET', 'AZURE_TENANT_ID']
+    auth_available = all(os.getenv(var) for var in auth_vars)
+    
+    if not auth_available:
+        print("⚠️  Service principal authentication not configured.")
+        print("   You may need to set AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID")
+    
     missing_vars = []
     
     for var in required_vars:

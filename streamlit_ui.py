@@ -18,15 +18,28 @@ def main():
         headers = rows[0]
         st.write("Columns in your file:", headers)
         columns_to_send = st.multiselect(
-            "Select columns to send to agent:", headers, default=[]
+            "Select columns to send to agent:", 
+            headers, 
+            default=["URL", "Certifier", "Certification Name"]
         )
 
+        # Find default indices for selectboxes
+        new_cert_index = 0
+        remark_index = 0
+        
+        # Try to find columns that might be the new certificate or remark columns
+        for i, header in enumerate(headers):
+            if "NEW CERTIFICATE" in str(header).upper() or "CERTIFICATE NAME" in str(header).upper():
+                new_cert_index = i
+            elif "REMARK" in str(header).upper():
+                remark_index = i
+
         new_cert_header = st.selectbox(
-            "Select the new certificate name header:", headers
+            "Select the new certificate name column:", headers, index=new_cert_index
         )
 
         remark_header = st.selectbox(
-            "Select the remark header:", headers
+            "Select the remark column:", headers, index=remark_index
         )
         start_row = st.number_input("Start row (inclusive)", min_value=2, value=2, step=1)
         end_row = st.number_input("End row (inclusive)", min_value=start_row, value=start_row, step=1)

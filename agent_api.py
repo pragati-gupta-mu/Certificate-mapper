@@ -1,18 +1,42 @@
-import os
-from azure.ai.projects import AIProjectClient
-from azure.identity import DefaultAzureCredential
-from azure.ai.agents.models import BingGroundingTool
 import json
+import os
+from azure.identity import DefaultAzureCredential, ClientSecretCredential
+from azure.ai.projects import AIProjectClient
+from azure.ai.agents.models import BingGroundingTool
 import config
 
 project_endpoint = config.PROJECT_ENDPOINT
 conn_id = config.BING_CONNECTION_NAME
 model_deployment = config.MODEL_DEPLOYMENT
 
+# For Codespaces/local development, we need to use service principal auth
+# You'll need to set these environment variables in GitHub Codespaces secrets:
+# AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID
+
+# Try to use environment variables for service principal authentication
+environment = os.getenv("ENVIRONMENT")
+print(f"Environment: {environment}")
+
+# if environment == "local":
+#     print("local environment detected, using DefaultAzureCredential")
+#     # Use DefaultAzureCredential for local development
+#     credential = DefaultAzureCredential()
+
+# else:
+client_id = os.getenv('AZURE_CLIENT_ID')
+client_secret = os.getenv('AZURE_CLIENT_SECRET') 
+tenant_id = os.getenv('AZURE_TENANT_ID')
+
+# Fallback to DefaultAzureCredential
+credential = ClientSecretCredential(
+    tenant_id=tenant_id,
+    client_id=client_id,
+    client_secret=client_secret
+)
 
 project_client = AIProjectClient(
     endpoint=project_endpoint,
-    credential=DefaultAzureCredential(),
+    credential=credential,
 )
 
 bing = BingGroundingTool(connection_id=conn_id)
