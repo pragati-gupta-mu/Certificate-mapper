@@ -1,12 +1,23 @@
 import os
 from dotenv import load_dotenv
 
-# Load environment variables from .env file (for local development)
+# Load environment variables from .env file (for local development only)
+# In production/Codespaces, this will do nothing (no .env file exists)
 load_dotenv()
 
-# Access environment variables
-API_KEY = os.getenv('API_KEY')
-DATABASE_URL = os.getenv('DATABASE_URL')
+# Detect environment
+ENVIRONMENT = os.getenv('ENVIRONMENT', 'local')
+IS_LOCAL = ENVIRONMENT == 'local'
+IS_CODESPACES = os.getenv('CODESPACES') == 'true'
+IS_PRODUCTION = not IS_LOCAL and not IS_CODESPACES
+
+# Azure AI Studio configuration
+PROJECT_ENDPOINT = os.getenv('PROJECT_ENDPOINT')
+MODEL_DEPLOYMENT = os.getenv('MODEL_DEPLOYMENT')
+SUBSCRIPTION_KEY = os.getenv('SUBSCRIPTION_KEY')
+BING_CONNECTION_NAME = os.getenv('BING_CONNECTION_NAME')
+
+# Application settings
 DEBUG = os.getenv('DEBUG', 'false').lower() == 'true'
 LOG_LEVEL = os.getenv('LOG_LEVEL', 'info')
 
@@ -15,12 +26,19 @@ STREAMLIT_PORT = int(os.getenv('STREAMLIT_SERVER_PORT', 8501))
 STREAMLIT_ADDRESS = os.getenv('STREAMLIT_SERVER_ADDRESS', '0.0.0.0')
 
 
-# Example usage
 def get_config():
     """Return application configuration from environment variables."""
     config = {
-        'api_key': API_KEY,
-        'database_url': DATABASE_URL,
+        'environment': ENVIRONMENT,
+        'is_local': IS_LOCAL,
+        'is_codespaces': IS_CODESPACES,
+        'is_production': IS_PRODUCTION,
+        'azure': {
+            'project_endpoint': PROJECT_ENDPOINT,
+            'model_deployment': MODEL_DEPLOYMENT,
+            'subscription_key': SUBSCRIPTION_KEY,
+            'bing_connection_name': BING_CONNECTION_NAME,
+        },
         'debug': DEBUG,
         'log_level': LOG_LEVEL,
         'streamlit': {
@@ -31,10 +49,14 @@ def get_config():
     return config
 
 
-# Validate required environment variables
 def validate_environment():
     """Validate that required environment variables are set."""
-    required_vars = ['API_KEY']  # Add your required variables here
+    required_vars = [
+        'PROJECT_ENDPOINT',
+        'MODEL_DEPLOYMENT',
+        'SUBSCRIPTION_KEY',
+        'BING_CONNECTION_NAME'
+    ]
     missing_vars = []
     
     for var in required_vars:
@@ -42,8 +64,24 @@ def validate_environment():
             missing_vars.append(var)
     
     if missing_vars:
+        env_info = f" (Environment: {ENVIRONMENT})"
         error_msg = (f"Missing required environment variables: "
-                     f"{', '.join(missing_vars)}")
+                     f"{', '.join(missing_vars)}{env_info}")
         raise ValueError(error_msg)
     
     return True
+
+
+def print_environment_info():
+    """Print current environment information for debugging."""
+    print(f"🌍 Environment: {ENVIRONMENT}")
+    print(f"📁 Local Development: {IS_LOCAL}")
+    print(f"☁️  GitHub Codespaces: {IS_CODESPACES}")
+    print(f"🚀 Production: {IS_PRODUCTION}")
+    
+    if IS_LOCAL:
+        print("📝 Using .env file for configuration")
+    elif IS_CODESPACES:
+        print("🔒 Using GitHub Codespaces secrets")
+    else:
+        print("⚙️  Using platform environment variables")
