@@ -3,21 +3,24 @@ from azure.ai.projects import AIProjectClient
 from azure.identity import DefaultAzureCredential
 from azure.ai.agents.models import BingGroundingTool
 import json
-from dotenv import load_dotenv
+import config
 
-load_dotenv()
-project_endpoint = os.environ["PROJECT_ENDPOINT"]
+project_endpoint = config.PROJECT_ENDPOINT
+conn_id = config.BING_CONNECTION_NAME
+model_deployment = config.MODEL_DEPLOYMENT
+
+
 project_client = AIProjectClient(
     endpoint=project_endpoint,
     credential=DefaultAzureCredential(),
 )
-conn_id = os.environ["BING_CONNECTION_NAME"]
+
 bing = BingGroundingTool(connection_id=conn_id)
 
 with open("agent_instruction.md", "r") as f:
     instructions = f.read()
 agent = project_client.agents.create_agent(
-    model=os.environ["MODEL_DEPLOYMENT"],
+    model=model_deployment,
     name="my-agent-certificate-mapper",
     instructions=instructions,
     tools=bing.definitions,
