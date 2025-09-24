@@ -1,7 +1,7 @@
 
 import streamlit as st
 import openpyxl
-from agent_api import call_agent
+from agent_api import process_rows_with_progress
 
 def main():
     st.title("Certificate Mapper Agent UI")
@@ -48,27 +48,48 @@ def main():
             try:
                 row_nums = [int(x.strip()) for x in row_numbers.split(",") if x.strip().isdigit()]
                 st.write(f"Rows to update: {row_nums}")
+                
+                # Prepare all row data for parallel processing
+                rows_to_process = []
+                row_indices = []
+                
                 for idx in row_nums:
                     if idx < 2 or idx > len(rows):
                         st.warning(f"Row {idx} is out of range.")
                         continue
                     row = rows[idx-1]
                     row_dict = {header: value for header, value in zip(headers, row) if header in columns_to_send}
-                    st.write(f"Sending to agent: {row_dict}")
-                    # Here you would call your agent logic and get the result
-                    # result = call_agent(row_dict)
-                    # For demo, just echo
-                    result = call_agent(row_dict)
-                    print(result)
-                    ws.cell(row=idx, column=headers.index(new_cert_header) + 1, value=result.get("newCertificateName"))
-                    ws.cell(row=idx, column=headers.index(remark_header) + 1, value=result.get("remark"))
-
-                    #result = {col: f"Updated {col}" for col in columns_to_update}
-                    # st.write(f"Agent result: {result}")
-                    # # Update the Excel file (in-memory)
-                    # for col in columns_to_update:
-                    #     col_idx = headers.index(col) + 1
-                    #     ws.cell(row=idx, column=col_idx, value=result[col])
+                    rows_to_process.append(row_dict)
+                    row_indices.append(idx)
+                
+                if rows_to_process:
+                    st.write(f"Processing {len(rows_to_process)} rows in parallel...")
+                    
+                    # Add progress bar
+                    progress_bar = st.progress(0)
+                    status_text = st.empty()
+                    
+                    def update_progress(completed, total):
+                        progress = completed / total
+                        progress_bar.progress(progress)
+                        status_text.text(f"Processing: {completed}/{total} rows completed")
+                    
+                    # Process all rows in parallel with progress tracking
+                    results = process_rows_with_progress(
+                        rows_to_process, 
+                        max_workers=3,  # Adjust based on your rate limits
+                        progress_callback=update_progress
+                    )
+                    
+                    # Update Excel file with results
+                    for idx, result in zip(row_indices, results):
+                        st.write(f"Row {idx} result: {result}")
+                        ws.cell(row=idx, column=headers.index(new_cert_header) + 1, value=result.get("newCertificateName"))
+                        ws.cell(row=idx, column=headers.index(remark_header) + 1, value=result.get("remark"))
+                    
+                    progress_bar.progress(1.0)
+                    status_text.text("✅ All rows processed successfully!")
+                    
                 # Save updated file
                 output_path = "updated_" + uploaded_file.name
                 wb.save(output_path)
